@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Village } from "../models/village.models.js";
 import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
@@ -6,13 +7,11 @@ import OpenAI from "openai";
 export const generateDevelopmentPlan = async (req, res) => {
   try {
     const villageId = req.params.id;
-
     const village = await Village.findById(villageId);
 
     if (!village) {
       throw new apiError(400, "Village not found");
     }
-
     const prompt = `
 Generate a professional development plan for an Indian rural village based on the following data. 
 Focus on SC-majority population impact, missing amenities, urgency level, government scheme suggestions, 
@@ -42,23 +41,32 @@ Write a detailed proposal with 10-15 lines in a formal government tone including
 - Expected improvement outcome on ranking score
 `;
 
-    const openai = new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-    const completion = await openai.chat.completions.create({
-        model:"gpt-4o-mini",
-        messages:[{role:"user",content:prompt}]
-    })
+    const model = genAI.getGenerativeModel({model:"gemini-2.0-flash"})
 
-    const generatedMessage = completion.choices[0].message.content;
+    const result = await model.generateContent(prompt)
+
+    const responseText = result.response.text()
+
+  
 
     res.json(
         new apiResponse(
             200,
             {
-                villageId,
-                plan:generatedMessage
-            }
+                village:village.villageName,
+                plan:responseText,
+            },
+            "message generated successfully"
         )
     )
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error generated while generating response:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate development plan",
+      error: error.message
+    })
+  }
 };
