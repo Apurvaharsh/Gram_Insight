@@ -130,7 +130,7 @@ export const Register = () => {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2">
         {/* 3D Floating Card Container */}
-        <div className="glass-panel w-full max-w-[440px] rounded-3xl shadow-[0_20px_40px_-5px_rgba(20,34,16,0.08),0_10px_20px_-5px_rgba(20,34,16,0.04),0_0_0_1px_rgba(255,255,255,0.8)] p-5 md:p-6 relative group/card transition-all duration-500 hover:shadow-xl">
+        <div className="glass-panel w-full max-w-[440px] rounded-3xl shadow-[0_25px_60px_-5px_rgba(20,34,16,0.25),0_15px_35px_-5px_rgba(20,34,16,0.15),0_0_0_1px_rgba(255,255,255,0.8)] p-5 md:p-6 relative group/card transition-all duration-500 hover:shadow-[0_30px_70px_-5px_rgba(20,34,16,0.3),0_20px_40px_-5px_rgba(20,34,16,0.2)]">
           {/* Accent Bar at Top */}
           <div className="absolute top-0 inset-x-10 h-1 bg-gradient-to-r from-transparent via-[#46ec13] to-transparent opacity-50"></div>
           
