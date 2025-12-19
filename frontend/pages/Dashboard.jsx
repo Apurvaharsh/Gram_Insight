@@ -100,40 +100,38 @@ export const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const headers = { "Authorization": `Bearer ${localStorage.getItem("token")}` };
-
-    // Stats
-    fetch("http://localhost:3000/api/analytics/summary", { headers })
-      .then((res) => res.json())
-      .then((response) => {
-        if (response.success) {
-          setStats(response.data)
+    const fetchData = async () => {
+      try {
+        // Import API utilities
+        const { analyticsAPI, villageAPI } = await import('../utils/api');
+        
+        // Fetch analytics summary
+        const summaryRes = await analyticsAPI.getSummary();
+        if (summaryRes.success) {
+          setStats(summaryRes.data);
+          
+          // Fetch amenities status after getting total villages
+          const amenitiesRes = await analyticsAPI.getAmenitiesStatus();
+          if (amenitiesRes.success && summaryRes.data.totalVillages > 0) {
+            const result = amenitiesRes.data.result;
+            const totalMissing = Object.values(result).reduce((a, b) => a + b, 0);
+            const totalAmenities = summaryRes.data.totalVillages * 7;
+            const coverage = Math.round(((totalAmenities - totalMissing) / totalAmenities) * 100);
+            setAmenityCoverage(isNaN(coverage) ? 0 : coverage);
+          }
         }
-      })
-      .catch((err) => console.error("Error fetching analytics:", err))
-
-    // Amenity Coverage
-    fetch("http://localhost:3000/api/analytics/amenities-status", { headers })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success && stats.totalVillages > 0) {
-          const result = res.data.result;
-          const totalMissing = Object.values(result).reduce((a, b) => a + b, 0);
-          const totalAmenities = stats.totalVillages * 7;
-          const coverage = Math.round(((totalAmenities - totalMissing) / totalAmenities) * 100);
-          setAmenityCoverage(isNaN(coverage) ? 0 : coverage);
+        
+        // Fetch villages
+        const villagesRes = await villageAPI.getAll();
+        if (villagesRes.success) {
+          setVillages(villagesRes.data.villages || []);
         }
-      })
-      .catch(console.error);
-  }, [stats.totalVillages])
-
-  useEffect(() => {
-    fetch("http://localhost:3000/api/villages")
-      .then((res) => res.json())
-      .then((response) => {
-        setVillages(response?.data?.villages || []);
-      })
-      .catch((err) => console.error(err));
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   return (

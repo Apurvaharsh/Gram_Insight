@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { authAPI } from '../utils/api';
 
 export const Profile = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await authAPI.getMe();
+        setUser(response);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading profile...</div>;
+  }
+
+  if (!user) {
+    return <div className="p-10 text-center">Failed to load profile</div>;
+  }
   return (
     <div className="max-w-[1000px] mx-auto flex flex-col gap-6 py-4">
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -12,13 +38,13 @@ export const Profile = () => {
                </div>
             </div>
             <div className="flex flex-col items-center md:items-start flex-1 gap-1 text-center md:text-left">
-               <h2 className="text-slate-900 text-xl font-bold">Arjun Singh</h2>
+               <h2 className="text-slate-900 text-xl font-bold">{user.name}</h2>
                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-primary-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-200">District Collector</span>
-                  <span className="text-slate-500 text-sm">• ID: GOV-8821</span>
+                  <span className="bg-blue-100 text-primary-700 text-xs font-semibold px-2 py-0.5 rounded border border-blue-200">{user.role || 'Officer'}</span>
+                  <span className="text-slate-500 text-sm">• ID: {user._id?.slice(-8)}</span>
                </div>
                <p className="text-slate-500 text-sm mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">schedule</span> Last Login: Today, 09:30 AM
+                  <span className="material-symbols-outlined text-[16px]">mail</span> {user.email}
                </p>
             </div>
          </div>
@@ -39,11 +65,11 @@ export const Profile = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <label className="flex flex-col gap-1.5">
                         <span className="text-sm font-medium text-slate-900">Full Name</span>
-                        <input className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none" type="text" defaultValue="Arjun Singh" />
+                        <input className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none" type="text" defaultValue={user.name} readOnly />
                      </label>
                      <label className="flex flex-col gap-1.5">
                         <span className="text-sm font-medium text-slate-900">Official Email</span>
-                        <input className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none" type="email" defaultValue="arjun.singh@gov.in" />
+                        <input className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none" type="email" defaultValue={user.email} readOnly />
                      </label>
                   </div>
                </div>

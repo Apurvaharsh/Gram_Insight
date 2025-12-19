@@ -41,26 +41,49 @@ Write a detailed proposal with 10-15 lines in a formal government tone including
 - Expected improvement outcome on ranking score
 `;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    let responseText;
 
-    const model = genAI.getGenerativeModel({model:"gemini-2.0-flash"})
+    let isFallback = false;
 
-    const result = await model.generateContent(prompt)
-
-    const responseText = result.response.text()
-
-  
+    try {
+      // Prefer live model when key is available
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not set");
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const result = await model.generateContent(prompt);
+      responseText = result.response.text();
+    } catch (aiError) {
+      console.warn("AI plan generation failed, using fallback:", aiError.message);
+      // Fallback deterministic plan so UI never breaks
+      isFallback = true;
+      responseText = `
+DEVELOPMENT PLAN SUMMARY
+1) Water Supply: Deploy solar water pumps and storage within 3 months.
+2) Electricity: Set up decentralized solar micro-grid; target 24/7 availability.
+3) Roads: Resurface main arteries; enable all-weather connectivity in 4–6 months.
+4) Healthcare: Weekly mobile health clinic; set up telemedicine kiosk.
+5) Education: Bridge-school program; ensure primary school capacity and teachers.
+6) Sanitation: 100% household toilets and community maintenance drive.
+7) Internet: Public Wi-Fi hotspot at Panchayat; fiber/4G uptime monitoring.
+8) Governance: Monthly review with SC community reps; publish progress dashboard.
+9) Schemes: Leverage Jal Jeevan Mission, PMGSY, Saubhagya, Ayushman, and PM-WANI.
+10) Timeline & Budget: Phase 1 (0–3m) critical gaps; Phase 2 (4–9m) infra; Phase 3 (10–18m) sustain. Budget tuned to missing amenities count.
+`.trim();
+    }
 
     res.json(
-        new apiResponse(
-            200,
-            {
-                village:village.villageName,
-                plan:responseText,
-            },
-            "message generated successfully"
-        )
-    )
+      new apiResponse(
+        200,
+        {
+          village: village.villageName,
+          plan: responseText,
+          isFallback,
+        },
+        "message generated successfully"
+      )
+    );
   } catch (error) {
     console.error("Error generated while generating response:", error)
     res.status(500).json({

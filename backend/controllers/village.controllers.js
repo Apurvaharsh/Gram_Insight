@@ -8,13 +8,16 @@ export const createVillage = async (req, res) => {
 
     villageData.createdBy = req.user._id;
 
-    const amenities = villageData.amenties || {}
+    // Handle both amenities and amenties (typo) for backward compatibility
+    const amenities = villageData.amenities || villageData.amenties || {};
+    villageData.amenities = amenities;
+    delete villageData.amenties; // Remove typo field
 
     const missingAmenities = Object.values(amenities).filter(
       (value) => value === "Not Available" || value === "Poor"
     ).length;
 
-    villageData.priorityScore = missingAmenities * 10 + villageData.scPopulation/10;
+    villageData.priorityScore = missingAmenities * 10 + (villageData.scPopulation || 0) / 10;
 
     const village = await Village.create(villageData);
 
@@ -22,23 +25,22 @@ export const createVillage = async (req, res) => {
       new apiResponse(
         200,
         {
-          villageData,
+          village: village,
         },
         "village created successfully"
       )
     );
   } catch (error) {
     console.error("Error while creating the village ", error);
-    throw new apiError(400, "server error");
+    throw new apiError(400, error.message || "server error");
   }
 };
 
 export const getVillages = async (req, res) => {
   try {
-    const villages = await Village.find().populate(
-      "createdBy",
-      "name email district"
-    );
+    const villages = await Village.find()
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
     res.json(
       new apiResponse(
         200,
@@ -50,16 +52,23 @@ export const getVillages = async (req, res) => {
     );
   } catch (error) {
     console.error("Error while listing the villages", error);
-    throw new apiError(400, "server error");
+    throw new apiError(400, error.message || "server error");
   }
 };
 
 export const getVillageById = async (req, res) => {
   try {
-    const village = await Village.findById(req.params.id);
+    const village = await Village.findById(req.params.id)
+      .populate("createdBy", "name email");
 
     if (!village) {
-      throw new apiError(400, "Village not found");
+      return res.status(404).json(
+        new apiResponse(
+          404,
+          null,
+          "Village not found"
+        )
+      );
     }
 
     res.json(
@@ -73,35 +82,68 @@ export const getVillageById = async (req, res) => {
     );
   } catch (error) {
     console.error("Error while fetching the village", error);
-    throw new apiError(400, "server error");
+    if (error.name === 'CastError') {
+      return res.status(404).json(
+        new apiResponse(
+          404,
+          null,
+          "Village not found"
+        )
+      );
+    }
+    throw new apiError(400, error.message || "server error");
   }
 };
 
 export const updateVillage = async (req, res) => {
   try {
+    // Handle amenities normalization
+    if (req.body.amenities || req.body.amenties) {
+      req.body.amenities = req.body.amenities || req.body.amenties;
+      delete req.body.amenties;
+    }
+
+    // Recalculate priority score if amenities changed
+    if (req.body.amenities) {
+      const missingAmenities = Object.values(req.body.amenities).filter(
+        (value) => value === "Not Available" || value === "Poor"
+      ).length;
+      const village = await Village.findById(req.params.id);
+      const scPopulation = req.body.scPopulation || village?.scPopulation || 0;
+      req.body.priorityScore = missingAmenities * 10 + scPopulation / 10;
+    }
+
     const updatedVillage = await Village.findByIdAndUpdate(
       req.params.id,
       req.body,
       {
         new: true,
+        runValidators: true,
       }
-    );
+    ).populate("createdBy", "name email");
+
     if (!updatedVillage) {
-      throw new apiError(400, "Error while finding and updating the village");
+      return res.status(404).json(
+        new apiResponse(
+          404,
+          null,
+          "Village not found"
+        )
+      );
     }
 
     res.json(
       new apiResponse(
         200,
         {
-          updatedVillage,
+          village: updatedVillage,
         },
         "village updated successfully"
       )
     );
   } catch (error) {
     console.error("Error while updating village", error);
-    throw new apiError(400, "server error");
+    throw new apiError(400, error.message || "server error");
   }
 };
 

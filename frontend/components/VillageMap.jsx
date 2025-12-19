@@ -11,7 +11,7 @@ const INDIA_BOUNDS = [
   [36.5, 99.0], // NE (a bit further north & east)
 ];
 
-export default function VillageMap({ villages }) {
+export default function VillageMap({ villages = [] }) {
   console.log("VILLAGES RECEIVED IN MAP:", villages);
   return (
     <MapContainer

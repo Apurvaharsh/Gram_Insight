@@ -11,10 +11,19 @@ export const Register = () => {
     role: 'officer'
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log('Registration data:', formData);
+    try {
+      const { authAPI } = await import('../utils/api');
+      const response = await authAPI.register(formData);
+      if (response.success) {
+        localStorage.setItem('token', response.data.token);
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Registration failed. Please try again.');
+    }
   };
 
   return (

@@ -12,10 +12,10 @@ import { admin } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", getVillages);
+router.get("/", protect, getVillages);
 router.post("/", protect, createVillage);
 router.put("/:id", protect, updateVillage);
-router.get("/:id", protect, getVillageById);
+router.get("/:id", getVillageById);
 router.delete("/:id", protect, admin, deleteVillage);
 router.put("/:id/approve", protect, admin, approveVillage);
 

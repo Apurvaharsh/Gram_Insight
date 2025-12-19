@@ -5,35 +5,37 @@ export const AiPlan = () => {
    const { id } = useParams();
    const [village, setVillage] = useState(null);
    const [aiPlan, setAiPlan] = useState("");
+   const [isFallback, setIsFallback] = useState(false);
    const [loading, setLoading] = useState(true);
 
    useEffect(() => {
       const fetchData = async () => {
          try {
-            const token = localStorage.getItem("token");
-            const headers = { Authorization: `Bearer ${token}` };
+            const { villageAPI, aiPlanAPI } = await import('../utils/api');
 
             // Fetch Village Details
-            const villageRes = await fetch(`http://localhost:3000/api/villages/${id}`, { headers });
-            const villageData = await villageRes.json();
-            if (villageData.success) {
-               setVillage(villageData.data.village);
+            const villageRes = await villageAPI.getById(id);
+            if (villageRes && villageRes.success && villageRes.data && villageRes.data.village) {
+               setVillage(villageRes.data.village);
             }
 
             // Fetch AI Plan
-            const aiRes = await fetch(`http://localhost:3000/api/villages/${id}/ai-plan`, { headers });
-            const aiData = await aiRes.json();
-            if (aiData.success) {
-               setAiPlan(aiData.data.plan);
+            const aiRes = await aiPlanAPI.generate(id);
+            if (aiRes && aiRes.success && aiRes.data) {
+               setAiPlan(aiRes.data.plan || "");
+               setIsFallback(Boolean(aiRes.data.isFallback));
             }
          } catch (error) {
             console.error("Error fetching data:", error);
+            alert('Failed to load AI plan. Please try again.');
          } finally {
             setLoading(false);
          }
       };
 
-      fetchData();
+      if (id) {
+         fetchData();
+      }
    }, [id]);
 
    if (loading || !village) {
@@ -41,20 +43,21 @@ export const AiPlan = () => {
    }
 
    // Derive Action Items from Amenities
-   const actionItems = [];
-   if (village.amenities.waterSupply === "Not Available") {
+  const amenities = village.amenities || {};
+  const actionItems = [];
+  if (amenities.waterSupply === "Not Available") {
       actionItems.push({ item: 'Install Solar Water Pumps', sector: 'Water Supply', prio: 'High', cost: '₹5,00,000', color: 'red' });
    }
-   if (village.amenities.roadConnectivity === "Poor") {
+  if (amenities.roadConnectivity === "Poor") {
       actionItems.push({ item: 'Resurface Main Roads', sector: 'Infrastructure', prio: 'High', cost: '₹15,00,000', color: 'red' });
    }
-   if (village.amenities.electricity === "Not Available") {
+  if (amenities.electricity === "Not Available") {
       actionItems.push({ item: 'Solar Grid Installation', sector: 'Energy', prio: 'High', cost: '₹8,00,000', color: 'orange' });
    }
-   if (village.amenities.school === "Not Available") {
+  if (amenities.school === "Not Available") {
       actionItems.push({ item: 'Construct Primary School', sector: 'Education', prio: 'Medium', cost: '₹12,00,000', color: 'orange' });
    }
-   if (village.amenities.healthcare === "Not Available") {
+  if (amenities.healthcare === "Not Available") {
       actionItems.push({ item: 'Mobile Health Clinic Setup', sector: 'Healthcare', prio: 'Critical', cost: '₹4,00,000', color: 'red' });
    }
    // Default item if all good
@@ -72,6 +75,12 @@ export const AiPlan = () => {
                <div className="flex items-center gap-2 text-slate-500 text-sm font-medium mt-1">
                   <span className="material-symbols-outlined text-[18px] text-green-600">smart_toy</span>
                   <span>Generated for {village.district} District</span>
+                  {isFallback && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                      <span className="material-symbols-outlined text-[14px]">info</span>
+                      Fallback summary
+                    </span>
+                  )}
                </div>
             </div>
             <div className="flex gap-3 mt-2 md:mt-0">

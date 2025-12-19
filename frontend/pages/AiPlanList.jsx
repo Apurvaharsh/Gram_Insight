@@ -1,58 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { villageAPI } from '../utils/api';
 
 export const AiPlanList = () => {
-  // Mock data - replace with actual API call
-  const plans = [
-    {
-      id: 1,
-      villageName: 'Rampur',
-      district: 'Rampur',
-      modelVersion: 'v2.4',
-      totalBudget: '45,00,000',
-      estimatedDuration: '18 Months',
-      beneficiaries: 1240,
-      priorityItems: 3,
-      generatedOn: 'Oct 24, 2023',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      villageName: 'Shivpur',
-      district: 'Kanpur',
-      modelVersion: 'v2.4',
-      totalBudget: '32,50,000',
-      estimatedDuration: '14 Months',
-      beneficiaries: 890,
-      priorityItems: 4,
-      generatedOn: 'Nov 12, 2023',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      villageName: 'Ganeshpur',
-      district: 'Etawah',
-      modelVersion: 'v2.3',
-      totalBudget: '28,00,000',
-      estimatedDuration: '12 Months',
-      beneficiaries: 650,
-      priorityItems: 2,
-      generatedOn: 'Sep 8, 2023',
-      status: 'Completed'
-    },
-    {
-      id: 4,
-      villageName: 'Laxmipur',
-      district: 'Rampur',
-      modelVersion: 'v2.4',
-      totalBudget: '51,20,000',
-      estimatedDuration: '20 Months',
-      beneficiaries: 1580,
-      priorityItems: 5,
-      generatedOn: 'Oct 30, 2023',
-      status: 'Active'
-    }
-  ];
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const villagesRes = await villageAPI.getAll();
+        if (villagesRes.success) {
+          const villages = villagesRes.data.villages || [];
+          setPlans(villages.map(v => ({
+            id: v._id,
+            villageName: v.villageName,
+            district: v.district,
+            modelVersion: 'v2.4',
+            totalBudget: 'TBD',
+            estimatedDuration: 'TBD',
+            beneficiaries: v.population || 0,
+            priorityItems: Object.values(v.amenities || {}).filter(val => val === 'Not Available' || val === 'Poor').length,
+            generatedOn: new Date(v.createdAt).toLocaleDateString(),
+            status: v.status === 'approved' ? 'Active' : 'Pending',
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching plans:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  const filteredPlans = useMemo(() => {
+    return plans.filter((p) => {
+      const matchesSearch =
+        p.villageName.toLowerCase().includes(search.toLowerCase()) ||
+        p.district.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "active"
+          ? p.status === "Active"
+          : p.status !== "Active";
+      return matchesSearch && matchesStatus;
+    });
+  }, [plans, search, statusFilter]);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading AI plans...</div>;
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -79,14 +81,24 @@ export const AiPlanList = () => {
             <p className="text-slate-600">AI-generated integrated development roadmaps</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all">
-              <span className="material-symbols-outlined text-lg">filter_list</span>
-              Filter
-            </button>
-            <button className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-200 hover:bg-primary-700 transition-all">
-              <span className="material-symbols-outlined text-lg">add</span>
-              Generate Plan
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-slate-500">filter_list</span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
+                placeholder="Search village or district"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -142,7 +154,7 @@ export const AiPlanList = () => {
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {plans.map((plan) => (
+          {filteredPlans.map((plan) => (
             <Link
               key={plan.id}
               to={`/villages/${plan.id}/ai-plan`}

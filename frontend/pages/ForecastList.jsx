@@ -1,50 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { villageAPI, forecastAPI } from '../utils/api';
 
 export const ForecastList = () => {
-  // Mock data - replace with actual API call
-  const forecasts = [
-    {
-      id: 1,
-      villageName: 'Shivpur',
-      district: 'Rampur',
-      confidence: 85,
-      estimatedCompletion: 'Nov 2024',
-      projectedBudget: '12.5L',
-      status: 'On Track',
-      lastUpdated: '2 hours ago'
-    },
-    {
-      id: 2,
-      villageName: 'Ganeshpur',
-      district: 'Kanpur',
-      confidence: 72,
-      estimatedCompletion: 'Feb 2025',
-      projectedBudget: '18.2L',
-      status: 'Delayed',
-      lastUpdated: '5 hours ago'
-    },
-    {
-      id: 3,
-      villageName: 'Ramgarh',
-      district: 'Etawah',
-      confidence: 91,
-      estimatedCompletion: 'Dec 2024',
-      projectedBudget: '9.8L',
-      status: 'Ahead',
-      lastUpdated: '1 day ago'
-    },
-    {
-      id: 4,
-      villageName: 'Laxmipur',
-      district: 'Rampur',
-      confidence: 68,
-      estimatedCompletion: 'Mar 2025',
-      projectedBudget: '15.4L',
-      status: 'At Risk',
-      lastUpdated: '3 hours ago'
-    }
-  ];
+  const [forecasts, setForecasts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchForecasts = async () => {
+      try {
+        const villagesRes = await villageAPI.getAll();
+        if (villagesRes.success) {
+          const villages = villagesRes.data.villages || [];
+          // For each village, we could fetch forecast, but for list view, we'll just show villages
+          // In a real app, you might want to cache forecasts or fetch them on demand
+          setForecasts(villages.map(v => ({
+            id: v._id,
+            villageName: v.villageName,
+            district: v.district,
+            priorityScore: v.priorityScore || 0,
+            status: v.status,
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching forecasts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchForecasts();
+  }, []);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading forecasts...</div>;
+  }
+
+  // Mock forecast data structure for display
+  const forecastsWithDetails = forecasts.map(f => ({
+    id: f.id,
+    villageName: f.villageName,
+    district: f.district,
+    confidence: f.priorityScore >= 80 ? 85 : f.priorityScore >= 50 ? 72 : 68,
+    estimatedCompletion: 'TBD',
+    projectedBudget: 'TBD',
+    status: f.status === 'approved' ? 'On Track' : 'Pending',
+    lastUpdated: 'Click to generate',
+  }));
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -101,7 +103,7 @@ export const ForecastList = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Total Forecasts</p>
-                <p className="text-2xl font-bold text-slate-900">{forecasts.length}</p>
+                <p className="text-2xl font-bold text-slate-900">{forecastsWithDetails.length}</p>
               </div>
             </div>
           </div>
@@ -142,7 +144,7 @@ export const ForecastList = () => {
 
         {/* Forecasts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {forecasts.map((forecast) => (
+          {forecastsWithDetails.map((forecast) => (
             <Link
               key={forecast.id}
               to={`/villages/${forecast.id}/forecast`}

@@ -1,30 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const chartData = [
-  { name: 'Q1', actual: 30, projected: 30 },
-  { name: 'Q2', actual: 52, projected: 48 },
-  { name: 'Q3', actual: 74, projected: 70 },
-  { name: 'Q4 (Est)', actual: null, projected: 92 },
-];
+import { forecastAPI } from '../utils/api';
 
 export const Forecast = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const [timeRange, setTimeRange] = useState('1 Year');
+  const [forecast, setForecast] = useState(null);
+  const [village, setVillage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchForecast = async () => {
+      try {
+        const response = await forecastAPI.generate(id);
+        if (response && response.success && response.data) {
+          setForecast(response.data.forecast);
+          setVillage(response.data.village);
+        } else {
+          console.error('Invalid forecast response:', response);
+        }
+      } catch (error) {
+        console.error('Error fetching forecast:', error);
+        alert('Failed to generate forecast. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (id) {
+      fetchForecast();
+    }
+  }, [id]);
+
+  if (loading) {
+    return <div className="p-10 text-center">Generating forecast...</div>;
+  }
+
+  if (!forecast || !village) {
+    return <div className="p-10 text-center">Failed to generate forecast</div>;
+  }
+
+  const chartData = [
+    { name: 'Q1', actual: 30, projected: 30 },
+    { name: 'Q2', actual: 52, projected: 48 },
+    { name: 'Q3', actual: 74, projected: 70 },
+    { name: 'Q4 (Est)', actual: null, projected: 92 },
+  ];
 
   return (
     <div className="flex flex-col gap-8 pb-10">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Shivpur Development Forecast</h2>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{village.villageName} Development Forecast</h2>
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-             <span className="font-semibold text-slate-700">ID: {id || 'IND-UP-883'}</span>
+             <span className="font-semibold text-slate-700">ID: {village._id?.slice(-8)}</span>
              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-             <span>Last Updated: 2 Hours ago by System AI</span>
+             <span>District: {village.district}</span>
              <span className="ml-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
-               <span className="material-symbols-outlined text-[16px]">verified</span> AI Confidence: 85%
+               <span className="material-symbols-outlined text-[16px]">verified</span> AI Generated
              </span>
           </div>
         </div>
@@ -53,9 +88,9 @@ export const Forecast = () => {
            <span className="material-symbols-outlined">auto_awesome</span>
          </div>
          <div>
-           <h4 className="text-slate-900 font-bold text-base mb-1">Key AI Insight</h4>
-           <p className="text-slate-700 text-sm leading-relaxed">
-              Based on current acceleration in road infrastructure projects, Shivpur is projected to meet its "Smart Village" connectivity criteria <strong>2 weeks ahead of schedule</strong>. However, water sanitation goals are lagging by 12% due to delayed material procurement.
+           <h4 className="text-slate-900 font-bold text-base mb-1">AI Development Summary</h4>
+           <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+              {forecast.aiSummary || 'Generating development forecast summary...'}
            </p>
          </div>
       </div>
@@ -64,14 +99,12 @@ export const Forecast = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden">
             <div className="flex justify-between items-start z-10">
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Projected Budget</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Estimated Budget</p>
                <span className="material-symbols-outlined text-green-500">trending_up</span>
             </div>
             <div className="z-10">
-               <p className="text-4xl font-extrabold text-slate-900">₹12.5L</p>
-               <p className="text-xs text-green-600 font-bold mt-2 inline-flex items-center gap-1">
-                  <span className="bg-green-100 px-1.5 py-0.5 rounded text-[10px]">+5%</span> vs initial allocation
-               </p>
+               <p className="text-4xl font-extrabold text-slate-900">{forecast.estimatedBudget}</p>
+               <p className="text-xs text-green-600 font-bold mt-2">Based on missing amenities</p>
             </div>
             <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none">
                <span className="material-symbols-outlined text-9xl">attach_money</span>
@@ -79,12 +112,12 @@ export const Forecast = () => {
          </div>
          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden">
             <div className="flex justify-between items-start z-10">
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Est. Completion</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Est. Timeline</p>
                <span className="material-symbols-outlined text-blue-600">event</span>
             </div>
             <div className="z-10">
-               <p className="text-4xl font-extrabold text-slate-900">Nov 2024</p>
-               <p className="text-xs text-slate-500 font-bold mt-2">On track for Phase 2</p>
+               <p className="text-4xl font-extrabold text-slate-900">{forecast.estimatedTimeline}</p>
+               <p className="text-xs text-slate-500 font-bold mt-2">Expected completion</p>
             </div>
              <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none">
                <span className="material-symbols-outlined text-9xl">calendar_month</span>
@@ -92,15 +125,15 @@ export const Forecast = () => {
          </div>
          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden">
             <div className="flex justify-between items-start z-10">
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Beneficiary Impact</p>
-               <span className="material-symbols-outlined text-purple-500">groups</span>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">Score Increase</p>
+               <span className="material-symbols-outlined text-purple-500">trending_up</span>
             </div>
             <div className="z-10">
-               <p className="text-4xl font-extrabold text-slate-900">1,240</p>
-               <p className="text-xs text-slate-500 font-bold mt-2">Households covered</p>
+               <p className="text-4xl font-extrabold text-slate-900">{forecast.expectedScoreIncrease}</p>
+               <p className="text-xs text-slate-500 font-bold mt-2">Priority score improvement</p>
             </div>
              <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none">
-               <span className="material-symbols-outlined text-9xl">diversity_3</span>
+               <span className="material-symbols-outlined text-9xl">analytics</span>
             </div>
          </div>
       </div>

@@ -19,12 +19,18 @@ import { VillageProvider } from "./context/VillageContext";
 function App() {
   const [villages, setVillages] = useState([]);
   useEffect(() => {
-    fetch("http://localhost:3000/api/villages")
-      .then((res) => res.json())
-      .then((response) => {
-        setVillages(response?.data?.villages || []);
-      })
-      .catch((err) => console.error(err));
+    const fetchVillages = async () => {
+      try {
+        const { villageAPI } = await import('./utils/api');
+        const response = await villageAPI.getAll();
+        if (response.success) {
+          setVillages(response.data.villages || []);
+        }
+      } catch (err) {
+        console.error('Error fetching villages:', err);
+      }
+    };
+    fetchVillages();
   }, []);
 
   return (
@@ -42,7 +48,7 @@ function App() {
             <Route path="/ai-plans" element={<AiPlanList />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/approvals" element={<Approvals />} />
-            <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />} />
             <Route path="/register" element={<Register />} />
             <Route path="/map" element={<VillageMap villages={villages} />} />
           </Routes>

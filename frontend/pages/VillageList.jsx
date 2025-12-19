@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { villageAPI } from "../utils/api";
 
 export const VillageList = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -7,28 +8,35 @@ export const VillageList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/villages")
-      .then((res) => res.json())
-      .then((response) => {
+    const fetchVillages = async () => {
+      try {
+        const response = await villageAPI.getAll();
         const normalized = (response?.data?.villages || []).map((v) => ({
           id: v._id,
+          _id: v._id,
           name: v.villageName,
+          villageName: v.villageName,
           district: v.district,
           block: v.block,
           population: v.population,
           scPopulation: v.scPopulation,
-          scPopulationPct: Math.round((v.scPopulation / v.population) * 100),
-          priorityScore: v.priorityScore,
-          status: v.status, // "pending" | "approved"
+          scPopulationPct: v.population ? Math.round((v.scPopulation / v.population) * 100) : 0,
+          priorityScore: v.priorityScore || 0,
+          status: v.status || "pending",
+          amenities: v.amenities || {},
+          createdAt: v.createdAt,
+          createdBy: v.createdBy,
         }));
 
         setVillages(normalized);
+      } catch (err) {
+        console.error("Error fetching villages:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      }
+    };
+    
+    fetchVillages();
   }, []);
 
   const filteredVillages = villages.filter((v) =>
@@ -150,13 +158,13 @@ export const VillageList = () => {
                       className="flex items-center gap-3"
                     >
                       <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold">
-                        {v.name.charAt(0)}
+                        {v.name?.charAt(0)?.toUpperCase() || 'V'}
                       </div>
                       <div>
                         <div className="font-bold text-slate-900 group-hover:text-primary-700">
                           {v.name}
                         </div>
-                        <div className="text-xs text-slate-400">ID: {v.id}</div>
+                        <div className="text-xs text-slate-400">Block: {v.block}</div>
                       </div>
                     </Link>
                   </td>
@@ -170,10 +178,10 @@ export const VillageList = () => {
                   {/* Population */}
                   <td className="px-6 py-4">
                     <div className="font-bold">
-                      {v.population.toLocaleString()}
+                      {v.population?.toLocaleString() || 'N/A'}
                     </div>
                     <div className="text-xs text-slate-400">
-                      SC: {v.scPopulationPct}%
+                      SC: {v.scPopulationPct}% ({v.scPopulation?.toLocaleString() || 0})
                     </div>
                   </td>
 
@@ -183,21 +191,21 @@ export const VillageList = () => {
                       <div className="flex justify-between text-xs">
                         <span
                           className={`font-bold ${getPriorityColor(
-                            v.priorityScore
+                            v.priorityScore || 0
                           )}`}
                         >
-                          {getPriorityLabel(v.priorityScore)}
+                          {getPriorityLabel(v.priorityScore || 0)}
                         </span>
                         <span className="text-slate-400">
-                          {v.priorityScore}%
+                          {v.priorityScore?.toFixed(1) || 0}
                         </span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full">
                         <div
                           className={`h-full rounded-full ${getPriorityBarColor(
-                            v.priorityScore
+                            v.priorityScore || 0
                           )}`}
-                          style={{ width: `${v.priorityScore}%` }}
+                          style={{ width: `${Math.min(v.priorityScore || 0, 100)}%` }}
                         />
                       </div>
                     </div>
@@ -227,9 +235,28 @@ export const VillageList = () => {
                       <Link
                         to={`/villages/${v.id}`}
                         className="h-8 w-8 flex items-center justify-center rounded-full text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow"
+                        title="View Details"
                       >
                         <span className="material-symbols-outlined">
                           visibility
+                        </span>
+                      </Link>
+                      <Link
+                        to={`/villages/${v.id}/forecast`}
+                        className="h-8 w-8 flex items-center justify-center rounded-full text-slate-400 hover:text-blue-600 hover:bg-white hover:shadow"
+                        title="View Forecast"
+                      >
+                        <span className="material-symbols-outlined">
+                          trending_up
+                        </span>
+                      </Link>
+                      <Link
+                        to={`/villages/${v.id}/ai-plan`}
+                        className="h-8 w-8 flex items-center justify-center rounded-full text-slate-400 hover:text-green-600 hover:bg-white hover:shadow"
+                        title="View AI Plan"
+                      >
+                        <span className="material-symbols-outlined">
+                          psychology
                         </span>
                       </Link>
                     </div>

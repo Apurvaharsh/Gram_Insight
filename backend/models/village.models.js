@@ -76,6 +76,18 @@ const villageSchema = new mongoose.Schema(
       enum: ["pending", "approved"],
       default: "pending",
     },
+    // Optional GeoJSON point for mapping (lon, lat)
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: undefined,
+      },
+    },
   },
   { timestamps: true }
 );
