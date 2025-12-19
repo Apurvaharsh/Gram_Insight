@@ -61,23 +61,23 @@ const villageSchema = new mongoose.Schema(
       },
     },
 
-    priorityScore:{
-        type:Number,
-        default:0
+    priorityScore: {
+      type: Number,
+      default: 0,
     },
 
-    createdBy:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        required:true
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    status:{
-        type:String,
-        enum:["pending","approved"],
-        default:"pending"
-    }
+    status: {
+      type: String,
+      enum: ["pending", "approved"],
+      default: "pending",
+    },
   },
   { timestamps: true }
 );
 
-export const Village = mongoose.model("Village",villageSchema)
+export const Village = mongoose.model("Village", villageSchema);

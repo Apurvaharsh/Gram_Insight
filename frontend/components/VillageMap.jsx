@@ -7,8 +7,8 @@ import { getMissingAmenities, getSeverityIcon } from "../utils/villageUtils";
 const INDIA_CENTER = [22.9734, 78.6569];
 
 const INDIA_BOUNDS = [
-  [6.4627, 68.1097], // SW
-  [35.5133, 97.3954], // NE
+  [5.5, 67.0], // SW (a bit further south & west)
+  [36.5, 99.0], // NE (a bit further north & east)
 ];
 
 export default function VillageMap({ villages }) {
@@ -30,13 +30,7 @@ export default function VillageMap({ villages }) {
       />
 
       {villages.map((v) => {
-        console.log(
-          "CHECK:",
-          v.villageName,
-          v.location.coordinates,
-          typeof v.location.coordinates[0],
-          typeof v.location.coordinates[1]
-        );
+        if (!v.location || !v.location.coordinates) return null;
 
         const missing = getMissingAmenities(v.amenities);
         const icon = getSeverityIcon(v.priorityScore, {
@@ -60,9 +54,9 @@ export default function VillageMap({ villages }) {
               <br />
               Missing Amenities:
               <ul>
-                {missing.map((m) => (
+                {missing.length > 0 ? missing.map((m) => (
                   <li key={m}>{m}</li>
-                ))}
+                )) : <li>None</li>}
               </ul>
             </Popup>
           </Marker>

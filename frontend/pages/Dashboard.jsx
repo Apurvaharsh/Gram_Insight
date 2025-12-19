@@ -1,0 +1,324 @@
+import VillageMap from "@/components/VillageMap";
+import { React, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
+const StatCard = ({
+  title,
+  value,
+  subValue,
+  icon,
+  trend,
+  trendUp,
+  colorClass,
+  iconBgClass,
+}) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+    <div className="flex justify-between items-start mb-4">
+      <div
+        className={`p-3 rounded-xl ${iconBgClass} group-hover:scale-110 transition-transform duration-300`}
+      >
+        <span className={`material-symbols-outlined ${colorClass} fill`}>
+          {icon}
+        </span>
+      </div>
+      {trend && (
+        <span
+          className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${trendUp
+            ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+            : "text-amber-700 bg-amber-50 border-amber-100"
+            }`}
+        >
+          {trendUp && (
+            <span className="material-symbols-outlined text-sm">
+              trending_up
+            </span>
+          )}
+          {trend}
+        </span>
+      )}
+    </div>
+    <div>
+      <p className="text-slate-500 text-sm font-medium mb-1">{title}</p>
+      <div className="flex items-baseline gap-1">
+        <h3 className="text-3xl font-extrabold text-slate-900">{value}</h3>
+        {subValue && (
+          <span className="text-sm text-slate-400 font-medium">{subValue}</span>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const activities = [
+  {
+    id: "1",
+    type: "Approval",
+    title: "Project Approved",
+    desc: "'Solar Grid' initiative for Ramgarh has been approved.",
+    time: "2h ago",
+    icon: "check_circle",
+    colorClass: "text-primary-600 bg-primary-50",
+  },
+  {
+    id: "2",
+    type: "Alert",
+    title: "Sanitation Alert",
+    desc: "Sitapur reported critical sanitation levels.",
+    time: "5h ago",
+    icon: "warning",
+    colorClass: "text-amber-600 bg-amber-50",
+  },
+  {
+    id: "3",
+    type: "Registration",
+    title: "New Registration",
+    desc: "Sarpanch registered for village Lakhanpur.",
+    time: "Yesterday",
+    icon: "person_add",
+    colorClass: "text-blue-600 bg-blue-50",
+  },
+  {
+    id: "4",
+    type: "Upload",
+    title: "Budget Uploaded",
+    desc: "Q3 Financial Report for District A uploaded.",
+    time: "2d ago",
+    icon: "upload_file",
+    colorClass: "text-purple-600 bg-purple-50",
+  },
+];
+
+export const Dashboard = () => {
+  const [villages, setVillages] = useState([]);
+  const [stats, setStats] = useState({
+    totalVillages: 0,
+    pendingVillages: 0,
+    averagePrioriyScore: 0,
+  });
+  const [amenityCoverage, setAmenityCoverage] = useState(0);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const headers = { "Authorization": `Bearer ${localStorage.getItem("token")}` };
+
+    // Stats
+    fetch("http://localhost:3000/api/analytics/summary", { headers })
+      .then((res) => res.json())
+      .then((response) => {
+        if (response.success) {
+          setStats(response.data)
+        }
+      })
+      .catch((err) => console.error("Error fetching analytics:", err))
+
+    // Amenity Coverage
+    fetch("http://localhost:3000/api/analytics/amenities-status", { headers })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success && stats.totalVillages > 0) {
+          const result = res.data.result;
+          const totalMissing = Object.values(result).reduce((a, b) => a + b, 0);
+          const totalAmenities = stats.totalVillages * 7;
+          const coverage = Math.round(((totalAmenities - totalMissing) / totalAmenities) * 100);
+          setAmenityCoverage(isNaN(coverage) ? 0 : coverage);
+        }
+      })
+      .catch(console.error);
+  }, [stats.totalVillages])
+
+  useEffect(() => {
+    fetch("http://localhost:3000/api/villages")
+      .then((res) => res.json())
+      .then((response) => {
+        setVillages(response?.data?.villages || []);
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-8 pb-10">
+      {/* Stats Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Villages"
+          value={stats.totalVillages}
+          icon="holiday_village"
+          trend="+12%"
+          trendUp={true}
+          colorClass="text-blue-600"
+          iconBgClass="bg-blue-50"
+        />
+        <StatCard
+          title="Pending Approvals"
+          value={stats.pendingVillages}
+          icon="pending_actions"
+          trend="Action Required"
+          trendUp={false}
+          colorClass="text-amber-600"
+          iconBgClass="bg-amber-50"
+        />
+        <StatCard
+          title="Avg Priority Score"
+          value={stats.averagePrioriyScore ? stats.averagePrioriyScore.toFixed(1) : "0"}
+          subValue="/10"
+          icon="analytics"
+          trend="Stable"
+          trendUp={true}
+          colorClass="text-slate-600"
+          iconBgClass="bg-slate-100"
+        />
+
+        {/* Featured Stat */}
+        <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-6 rounded-2xl shadow-lg shadow-green-200 text-white relative overflow-hidden group">
+          <div className="absolute -right-6 -top-6 bg-white/10 rounded-full size-32 blur-2xl"></div>
+          <div className="relative z-10 flex justify-between items-start mb-4">
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl text-white group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined fill">water_drop</span>
+            </div>
+            <span className="text-xs font-bold text-white bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+              Monthly Goal
+            </span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-green-100 text-sm font-medium mb-1">
+              Amenity Coverage
+            </p>
+            <h3 className="text-3xl font-bold text-white">{amenityCoverage}%</h3>
+          </div>
+          <div className="relative z-10 w-full bg-black/20 h-1.5 rounded-full mt-4 overflow-hidden">
+            <div className="bg-white h-full rounded-full w-[0%] transition-all duration-1000" style={{ width: `${amenityCoverage}%` }}></div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          {/* Quick Actions */}
+          <section>
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary-600">
+                bolt
+              </span>
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Link
+                to="/villages/new"
+                className="flex flex-col items-center justify-center gap-3 p-5 rounded-xl bg-primary-600 text-white shadow-lg shadow-green-200 hover:bg-primary-700 hover:-translate-y-1 transition-all group"
+              >
+                <div className="p-2 bg-white/20 rounded-full">
+                  <span className="material-symbols-outlined">add</span>
+                </div>
+                <span className="text-sm font-bold">New Village</span>
+              </Link>
+              <button className="flex flex-col items-center justify-center gap-3 p-5 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all group">
+                <div className="p-2 bg-amber-50 rounded-full text-amber-600 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">fact_check</span>
+                </div>
+                <span className="text-sm font-semibold">Verify Data</span>
+              </button>
+              <Link
+                to="/analytics"
+                className="flex flex-col items-center justify-center gap-3 p-5 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all group"
+              >
+                <div className="p-2 bg-blue-50 rounded-full text-blue-600 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">description</span>
+                </div>
+                <span className="text-sm font-semibold">Reports</span>
+              </Link>
+              <button className="flex flex-col items-center justify-center gap-3 p-5 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all group">
+                <div className="p-2 bg-purple-50 rounded-full text-purple-600 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">group_add</span>
+                </div>
+                <span className="text-sm font-semibold">Add Officer</span>
+              </button>
+            </div>
+          </section>
+
+          {/* Map/Heatmap Placeholder */}
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 h-[400px] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-100 p-1.5 rounded-lg text-primary-600">
+                  <span className="material-symbols-outlined text-sm">map</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Priority Heatmap
+                </h3>
+              </div>
+              <button
+                onClick={() => navigate("/map")}
+                className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  open_in_new
+                </span>
+              </button>
+            </div>
+            <div className="relative flex-1 bg-slate-100 group overflow-hidden">
+              <VillageMap villages={villages} />
+
+              <div className="absolute top-[55%] left-[60%] flex flex-col items-center group/pin cursor-pointer">
+                <div className="h-4 w-4 bg-amber-500 rounded-full border-[3px] border-white shadow-lg relative z-10"></div>
+              </div>
+              <div className="absolute top-[45%] left-[45%] flex flex-col items-center group/pin cursor-pointer">
+                <div className="h-4 w-4 bg-green-500 rounded-full border-[3px] border-white shadow-lg relative z-10"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Sidebar Right: Recent Activity */}
+        <div className="flex flex-col h-full">
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+              <h3 className="text-lg font-bold text-slate-900">
+                Recent Activity
+              </h3>
+              <button className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition-colors">
+                <span className="material-symbols-outlined text-lg">tune</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex gap-4 p-4 hover:bg-slate-50 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-slate-100"
+                >
+                  <div className="mt-1 flex-shrink-0">
+                    <div
+                      className={`size-10 rounded-full flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform ${activity.colorClass}`}
+                    >
+                      <span className="material-symbols-outlined text-lg fill">
+                        {activity.icon}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm text-slate-900 font-bold">
+                        {activity.title}
+                      </p>
+                      <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        {activity.time}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                      {activity.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+              <button className="w-full py-2.5 text-sm font-bold text-primary-600 hover:text-white hover:bg-primary-600 border border-primary-200 hover:border-primary-600 rounded-lg transition-all shadow-sm">
+                View All Activity
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
