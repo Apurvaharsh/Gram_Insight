@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { villageAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export const VillageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [village, setVillage] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -187,19 +189,21 @@ export const VillageDetail = () => {
            </div>
 
            {/* Management Actions */}
-           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <h3 className="text-slate-900 text-base font-bold mb-4">Management Actions</h3>
-              <div className="flex flex-col gap-3">
-                 <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-primary-200 transition-all text-left group">
-                    <span className="material-symbols-outlined text-slate-500 group-hover:text-primary-600">edit_document</span>
-                    <span className="text-slate-900 text-sm font-medium">Edit Village Details</span>
-                 </button>
-                 <button onClick={handleDelete} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-all text-left group">
-                    <span className="material-symbols-outlined text-red-500">delete</span>
-                    <span className="text-red-600 text-sm font-medium">Delete Record</span>
-                 </button>
-              </div>
-           </div>
+           {isAdmin() && (
+             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                <h3 className="text-slate-900 text-base font-bold mb-4">Management Actions</h3>
+                <div className="flex flex-col gap-3">
+                   <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-primary-200 transition-all text-left group">
+                      <span className="material-symbols-outlined text-slate-500 group-hover:text-primary-600">edit_document</span>
+                      <span className="text-slate-900 text-sm font-medium">Edit Village Details</span>
+                   </button>
+                   <button onClick={handleDelete} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-all text-left group">
+                      <span className="material-symbols-outlined text-red-500">delete</span>
+                      <span className="text-red-600 text-sm font-medium">Delete Record</span>
+                   </button>
+                </div>
+             </div>
+           )}
 
            {/* Activity Log */}
            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">

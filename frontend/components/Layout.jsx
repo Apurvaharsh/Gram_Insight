@@ -1,13 +1,22 @@
 import React from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export const Layout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout, isAdmin } = useAuth();
   const isRegisterPage = location.pathname === "/register";
+  const isLoginPage = location.pathname === "/login";
 
-  if (isRegisterPage) {
+  if (isRegisterPage || isLoginPage) {
     return <>{children}</>;
   }
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const isActive = (path) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -106,26 +115,25 @@ export const Layout = ({ children }) => {
                 </span>
                 <span className="text-sm font-bold">AI Plans</span>
               </Link>
-              <Link
-                to="/approvals"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
-                  isActive("/approvals")
-                    ? "bg-primary-50 text-primary-700 shadow-sm ring-1 ring-inset ring-primary-100"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <span
-                  className={`material-symbols-outlined ${
-                    isActive("/approvals") ? "fill" : ""
+              {isAdmin() && (
+                <Link
+                  to="/approvals"
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
+                    isActive("/approvals")
+                      ? "bg-primary-50 text-primary-700 shadow-sm ring-1 ring-inset ring-primary-100"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  assignment_turned_in
-                </span>
-                <span className="text-sm font-bold">Approvals</span>
-                <span className="ml-auto bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  8
-                </span>
-              </Link>
+                  <span
+                    className={`material-symbols-outlined ${
+                      isActive("/approvals") ? "fill" : ""
+                    }`}
+                  >
+                    assignment_turned_in
+                  </span>
+                  <span className="text-sm font-bold">Approvals</span>
+                </Link>
+              )}
               <Link
                 to="/analytics"
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
@@ -153,24 +161,29 @@ export const Layout = ({ children }) => {
           <div className="border-t border-slate-100 pt-4">
             <Link
               to="/profile"
-              className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 hover:bg-white hover:shadow-md transition-all"
+              className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 hover:bg-white hover:shadow-md transition-all mb-2"
             >
-              <div
-                className="h-10 w-10 overflow-hidden rounded-full border-2 border-white shadow-sm bg-cover bg-center"
-                style={{
-                  backgroundImage:
-                    'url("https://picsum.photos/seed/user1/100/100")',
-                }}
-              ></div>
-              <div className="flex flex-col overflow-hidden">
+              <div className="h-10 w-10 overflow-hidden rounded-full border-2 border-white shadow-sm bg-primary-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-white text-lg">
+                  person
+                </span>
+              </div>
+              <div className="flex flex-col overflow-hidden flex-1">
                 <p className="truncate text-sm font-bold text-slate-900">
-                  Arjun Singh
+                  {user?.name || "User"}
                 </p>
                 <p className="truncate text-xs font-medium text-slate-500">
-                  District Admin
+                  {user?.role === "admin" ? "Administrator" : "Officer"}
                 </p>
               </div>
             </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all text-sm font-bold"
+            >
+              <span className="material-symbols-outlined text-lg">logout</span>
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </aside>
@@ -215,13 +228,13 @@ export const Layout = ({ children }) => {
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border border-white bg-red-500"></span>
             </button>
-            <Link
-              to="/register"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-primary-600 transition-all"
-              title="Logout/Register"
+            <button
+              onClick={handleLogout}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-red-600 transition-all"
+              title="Logout"
             >
               <span className="material-symbols-outlined">logout</span>
-            </Link>
+            </button>
           </div>
         </header>
 

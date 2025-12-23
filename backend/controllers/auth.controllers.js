@@ -51,7 +51,7 @@ export const registerUser = async (req, res, next) => {
   }
 };
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -62,16 +62,16 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      throw new apiError(400, "Invalid credentials");
+      throw new apiError(401, "Invalid credentials");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      throw new apiError(400, "Wrong password");
+      throw new apiError(401, "Invalid credentials");
     }
 
-    return res.status(201).json(
+    return res.status(200).json(
       new apiResponse(
         200,
         {
@@ -85,21 +85,25 @@ export const loginUser = async (req, res) => {
       )
     );
   } catch (error) {
-    console.error("error is", error);
-    throw new apiError(500, "server error");
+    next(error);
   }
 };
 
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
 
     if (!user) {
-      throw new apiError(400, "User not found");
+      throw new apiError(404, "User not found");
     }
-    return res.json(user);
+    return res.json(
+      new apiResponse(
+        200,
+        user,
+        "User fetched successfully"
+      )
+    );
   } catch (error) {
-    console.error("Error is ", error);
-    throw new apiError(500, "server error");
+    next(error);
   }
 };

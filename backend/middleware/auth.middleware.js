@@ -35,7 +35,5 @@ export const admin = async(req,res,next) => {
     if(req.user && req.user.role === "admin"){
         return next()
     }
-    return res.json(
-        new apiError(403,"Access denied: Admin only")
-    )
+    throw new apiError(403,"Access denied: Admin only")
 }

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/login.css';
 
 export const Register = () => {
+  const navigate = useNavigate();
+  const { register } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -10,19 +13,25 @@ export const Register = () => {
     password: '',
     role: 'officer'
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
-      const { authAPI } = await import('../utils/api');
-      const response = await authAPI.register(formData);
-      if (response.success) {
-        localStorage.setItem('token', response.data.token);
-        window.location.href = '/';
+      const result = await register(formData);
+      if (result.success) {
+        navigate('/');
+      } else {
+        setError(result.message || 'Registration failed. Please try again.');
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,6 +161,13 @@ export const Register = () => {
             <p className="text-[#5e9a4c] text-xs font-medium">Register to access the dashboard</p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+              {error}
+            </div>
+          )}
+
           {/* Registration Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Name Field */}
@@ -170,6 +186,7 @@ export const Register = () => {
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -190,6 +207,7 @@ export const Register = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -206,6 +224,7 @@ export const Register = () => {
                     checked={formData.role === 'officer'}
                     onChange={(e) => setFormData({...formData, role: e.target.value})}
                     className="peer sr-only"
+                    disabled={loading}
                   />
                   <div className="input-debossed h-9 rounded-xl flex items-center justify-center gap-1.5 peer-checked:bg-white peer-checked:shadow-[inset_1px_1px_3px_rgba(166,175,163,0.2),0_0_0_2px_rgba(70,236,19,0.3)] peer-checked:border-[#46ec13] transition-all">
                     <span className="material-symbols-outlined text-[14px] text-[#5e9a4c]">badge</span>
@@ -220,6 +239,7 @@ export const Register = () => {
                     checked={formData.role === 'admin'}
                     onChange={(e) => setFormData({...formData, role: e.target.value})}
                     className="peer sr-only"
+                    disabled={loading}
                   />
                   <div className="input-debossed h-9 rounded-xl flex items-center justify-center gap-1.5 peer-checked:bg-white peer-checked:shadow-[inset_1px_1px_3px_rgba(166,175,163,0.2),0_0_0_2px_rgba(70,236,19,0.3)] peer-checked:border-[#46ec13] transition-all">
                     <span className="material-symbols-outlined text-[14px] text-[#5e9a4c]">admin_panel_settings</span>
@@ -243,6 +263,7 @@ export const Register = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   required
+                  disabled={loading}
                 />
                 <button
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-[#5e9a4c] hover:text-[#111b0d] transition-colors flex items-center"
@@ -260,8 +281,8 @@ export const Register = () => {
             <div className="mt-1">
               <div className="btn-3d-wrapper" style={{height: '3rem'}}>
                 <div className="btn-3d-shadow"></div>
-                <button className="btn-3d-face" type="submit">
-                  <span className="mr-2 text-sm">Create Account</span>
+                <button className="btn-3d-face" type="submit" disabled={loading}>
+                  <span className="mr-2 text-sm">{loading ? 'Creating Account...' : 'Create Account'}</span>
                   <span className="material-symbols-outlined text-[18px] font-bold">arrow_forward</span>
                 </button>
               </div>
@@ -272,7 +293,7 @@ export const Register = () => {
           <div className="mt-4 text-center pt-3 border-t border-[#eaf3e7]">
             <p className="text-[#5e9a4c] text-[11px]">
               Already have an account?
-              <Link className="text-[#111b0d] font-bold hover:text-[#46ec13] transition-colors ml-1 inline-flex items-center gap-1 group/link" to="/">
+              <Link className="text-[#111b0d] font-bold hover:text-[#46ec13] transition-colors ml-1 inline-flex items-center gap-1 group/link" to="/login">
                 Login here
                 <span className="material-symbols-outlined text-[16px] group-hover/link:translate-x-0.5 transition-transform">chevron_right</span>
               </Link>
